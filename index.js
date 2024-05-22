@@ -1,3 +1,4 @@
+const CSI="\x1b[";
 const SEXTANTS = [
     ' ', '🬀', '🬁', '🬂', '🬃', '🬄', '🬅', '🬆', '🬇', '🬈', '🬉', '🬊', '🬋', '🬌', '🬍', '🬎',
     '🬏', '🬐', '🬑', '🬒', '🬓', '▌', '🬔', '🬕', '🬖', '🬗', '🬘', '🬙', '🬚', '🬛', '🬜', '🬝', 
@@ -12,7 +13,6 @@ const rl = readline.createInterface({
 //import WebSocket from "ws";
 let WebSocket = require("ws");
 let ws = new WebSocket("wss://zxnet.co.uk/teletext/viewer/channels/ws1");
-let CSI="\x1B[";
 function atob(data){
     return Buffer.from(data, 'base64').toString('ascii');
 };
@@ -26,10 +26,8 @@ function clear(){
 function switchPage(num){
     if(typeof(num)=="number"){num=num.toString()}
     let a=parseInt(num[0]);
-    let b=parseInt(num[1]);
-    let c=parseInt(num[2],16);
-    let s=[a,b*16+c];
-    ws.send("pagesearch,0,"+s[0]+","+s[1]+",16255,true,false")
+    let b=parseInt(num.slice(1),16);
+    ws.send("pagesearch,0,"+a+","+b+",16255,true,false")
 };
 function graphicsManage(str){
     let out="";
@@ -62,6 +60,7 @@ function paletteLog(str){
     str=str.replace(/[\x01-\x07]/gm,(a)=>{a=a.charCodeAt();return CSI+"1;34;"+(30+60*bright+(a&7))+"m ";});
     str=str.replace(/[\x11-\x17]/gm,(a)=>{a=a.charCodeAt();return CSI+"1;34;"+(30+60*bright+(a&7))+"m";});
     str=str.replace(/[\x08\x18]/gm,(a)=>{a=a.charCodeAt();return CSI+"5m";})
+    str=str.replace(/[\x00-\x1a\x1c-\x1f]/gm,""); // we dont want bad control codes in here!!
     console.log(str+CSI+"1;34;0m") // .replace(/\x7f/g,"\u2588")
 }
 ws.onmessage = (event) => {
@@ -73,7 +72,7 @@ ws.onmessage = (event) => {
             clear();
             position(0,0);
             //console.log(d[2]);
-            console.log(atob(d[2]).slice(2));
+            console.log(atob(d[2]));
         }
     }
     if(d[0]=="row"){
